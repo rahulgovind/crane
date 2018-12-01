@@ -9,6 +9,27 @@ import (
 	"path"
 )
 
+type Semaphore struct {
+	s chan bool
+}
+
+func NewSemaphore(n int) *Semaphore {
+	r := &Semaphore{make(chan bool, n)}
+	// Fill semaphore
+	for i := 0; i < n; i++ {
+		r.s <- true
+	}
+	return r
+}
+
+func (sem *Semaphore) Acquire() {
+	<-sem.s
+}
+
+func (sem *Semaphore) Release() {
+	sem.s <- true
+}
+
 // https://stackoverflow.com/questions/33450980/golang-remove-all-contents-of-a-directory
 func CreateFileDir(dir string) {
 
