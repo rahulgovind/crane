@@ -143,11 +143,9 @@ func (fs *FileSystem) Delete(filename string) error {
 	abs := fs.abs(filename)
 	if _, ok := fs.fileCount[abs]; ok {
 		fs.fileCount[abs] -= 1
-		fmt.Println("Decrementing ", filename)
 		if fs.fileCount[abs] == 0 {
 			err := os.Remove(abs)
 			delete(fs.fileCount, abs)
-			fmt.Println("Deleting ", filename)
 			return err
 		}
 		return nil

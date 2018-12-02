@@ -50,6 +50,7 @@ type StatusSummary struct {
 	Name      string
 	Completed int
 	Total     int
+	Updated   time.Time
 }
 
 type Status struct {
@@ -87,27 +88,33 @@ func (t Topology) Same(t2 Topology) bool {
 func (r *StatusResponse) Summarize() (summary StatusSummary) {
 
 	var progress, completed int
+	maxTime := time.Time{}
 	for _, status := range r.Resp {
 		if status.Status == INPROGRESS {
 			progress += 1
 		} else if status.Status == COMPLETED {
 			completed += 1
 		}
+		if maxTime.Before(status.Updated) {
+			maxTime = status.Updated
+		}
 	}
 	summary.Name = r.Name
 	summary.Completed = completed
 	summary.Total = progress + completed
+	summary.Updated = maxTime
 	return
 }
 
 func (n *Node) Load() {
 	if !n.Sink {
-		fmt.Println(n.Name, "\t", n.Sink)
+		log.Debug("Loading new Bolt: %v", n.Name)
 		symbols := n.P.Load(n.Name, n.Name+"Input", n.Name+"Output")
 		n.input = reflect.ValueOf(symbols[1].(func() interface{})())
 		n.f = reflect.ValueOf(symbols[0])
 		n.output = reflect.ValueOf(symbols[2].(func() interface{})())
 	} else {
+		log.Debug("Loading new Sink: %v", n.Name)
 		symbols := n.P.Load(n.Name + "Input")
 		n.input = reflect.ValueOf(symbols[0].(func() interface{})())
 	}
