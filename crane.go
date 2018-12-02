@@ -68,6 +68,22 @@ type UploadRequest struct {
 	Program  Program
 }
 
+func (t Topology) Same(t2 Topology) bool {
+	if len(t) != len(t2) {
+		return false
+	}
+	n1 := make(map[string]bool)
+	for _, x := range t {
+		n1[x.Name] = true
+	}
+	for _, x := range t2 {
+		if _, ok := n1[x.Name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func (r *StatusResponse) Summarize() (summary StatusSummary) {
 
 	var progress, completed int
@@ -116,6 +132,16 @@ func (t *Topology) getNodeNames() (result []string) {
 	return
 }
 
+func CheckConflict(t1 Topology, t2 Topology) bool {
+	for _, n1 := range t1 {
+		for _, n2 := range t2 {
+			if n1.Name == n2.Name {
+				return true
+			}
+		}
+	}
+	return false
+}
 func CreateNodeConfiguration(node Node) io.Reader {
 	// Program not initialized
 	buf := bytes.NewBuffer(nil)

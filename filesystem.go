@@ -157,6 +157,7 @@ func (fs *FileSystem) Delete(filename string) error {
 	return nil
 }
 
+
 func Delete(filename string) error {
 	return dfs.Delete(filename)
 }

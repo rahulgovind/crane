@@ -35,7 +35,7 @@ func Download(addr, dstFile string, w io.Writer) error {
 	return err
 }
 
-func DownloadReader(addr, dstFile string, w io.Writer) (io.Reader, error) {
+func DownloadReader(addr, dstFile string) (io.Reader, error) {
 	url := fmt.Sprintf("http://%v/%v", addr, dstFile)
 	resp, err := http.Get(url)
 
