@@ -1,6 +1,7 @@
 package crane
 
 import (
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -9,18 +10,21 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 )
 
 type FileSystem struct {
-	root     string
-	baseAddr string
-	addr     string
+	root      string
+	baseAddr  string
+	addr      string
+	countLock sync.Mutex
+	fileCount map[string]int
 }
 
 var dfs *FileSystem
 
 func InitFileSystem(root string, addr string) {
-	dfs = &FileSystem{root: root, baseAddr: addr}
+	dfs = &FileSystem{root: root, baseAddr: addr, fileCount: make(map[string]int)}
 	CreateFileDir(root)
 	go dfs.StartServer()
 }
@@ -75,7 +79,17 @@ func Open(filename string) (*os.File, error) {
 }
 
 func (fs *FileSystem) Create(filename string) (*os.File, error) {
-	return os.Create(path.Join(fs.root, filename))
+	f, err := os.Create(fs.abs(filename))
+	if err != nil {
+		return nil, err
+	}
+
+	if filename != "NULL" {
+		fs.countLock.Lock()
+		defer fs.countLock.Unlock()
+		fs.fileCount[fs.abs(filename)] = 1
+	}
+	return f, err
 }
 
 func Create(filename string) (*os.File, error) {
@@ -93,6 +107,20 @@ func CopyFile(srcFile, dstFile string) error {
 	return dfs.CopyFile(srcFile, dstFile)
 }
 
+func (fs *FileSystem) CreateCopy(filename string) {
+	if filename != "NULL" {
+		fs.countLock.Lock()
+		defer fs.countLock.Unlock()
+		if _, ok := fs.fileCount[fs.abs(filename)]; ok {
+			fs.fileCount[fs.abs(filename)] += 1
+		}
+	}
+}
+
+func CreateCopy(filename string) {
+	dfs.CreateCopy(filename)
+}
+
 func (fs *FileSystem) FileSize(filename string) int {
 	fi, err := os.Stat(path.Join(fs.root, filename))
 	if err != nil {
@@ -104,4 +132,31 @@ func (fs *FileSystem) FileSize(filename string) int {
 
 func FileSize(filename string) int {
 	return dfs.FileSize(filename)
+}
+
+func (fs *FileSystem) Delete(filename string) error {
+	fs.countLock.Lock()
+	defer fs.countLock.Unlock()
+	if filename == "NULL" {
+		return nil
+	}
+	abs := fs.abs(filename)
+	if _, ok := fs.fileCount[abs]; ok {
+		fs.fileCount[abs] -= 1
+		fmt.Println("Decrementing ", filename)
+		if fs.fileCount[abs] == 0 {
+			err := os.Remove(abs)
+			delete(fs.fileCount, abs)
+			fmt.Println("Deleting ", filename)
+			return err
+		}
+		return nil
+	} else {
+		return errors.New("file does not exist")
+	}
+	return nil
+}
+
+func Delete(filename string) error {
+	return dfs.Delete(filename)
 }

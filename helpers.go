@@ -7,7 +7,22 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sync"
 )
+
+type AtomicCounter struct {
+	count int
+	lock  sync.Mutex
+}
+
+// Increment adds 1 to the count and returns the old value
+func (ac *AtomicCounter) Increment() int {
+	ac.lock.Lock()
+	defer ac.lock.Unlock()
+	oldCount := ac.count
+	ac.count += 1
+	return oldCount
+}
 
 type Semaphore struct {
 	s chan bool
@@ -28,6 +43,12 @@ func (sem *Semaphore) Acquire() {
 
 func (sem *Semaphore) Release() {
 	sem.s <- true
+}
+
+var globalCounter AtomicCounter
+
+func Next() int {
+	return globalCounter.Increment()
 }
 
 // https://stackoverflow.com/questions/33450980/golang-remove-all-contents-of-a-directory
@@ -95,7 +116,7 @@ func copyFile(src, dst string) (err error) {
 	if err = os.Link(src, dst); err == nil {
 		return
 	}
-	err = copyFileContents(src, dst)
+	//err = copyFileContents(src, dst)
 	return
 }
 
