@@ -183,12 +183,12 @@ func NewCrane(coordinator string, topology Topology, program Program) *Crane {
 func (c *Crane) UploadProgram() error {
 	client := RPCDial(c.coordinator)
 	args := UploadRequest{Topology: c.topology, Program: c.program}
-	var t Topology
-	err := client.Call("Command.UploadTopology", args, &t)
+	var r SubmitJobResponse
+	err := client.Call("Command.SubmitJob", args, &r)
 	if err != nil {
 		return errors.New(fmt.Sprintf("upload failed: %v", err))
 	}
-	c.topology = t
+	c.topology = r.Topology
 	c.active = true
 	return nil
 }

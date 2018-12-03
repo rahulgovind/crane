@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/rahulgovind/crane"
+	"log"
 	"time"
 )
 
@@ -62,22 +63,18 @@ func main() {
 							}
 							`}
 	c := crane.NewCrane("127.0.0.1:4101", topology, program)
-	c.UploadProgram()
+	err := c.UploadProgram()
+	if err != nil {
+		log.Fatal("Unable to upload program")
+	} else {
+		fmt.Println("Job submit successful. You can exit and check updates on master website. 127.0.0.1:54001")
+	}
 	for {
 		status, _ := c.GetTopologyStatus()
-		completed := false
 		for _, summary := range status {
 			fmt.Printf("%v: Completed %v/%v.\t%v Left\n", summary.Name, summary.Completed, summary.Total,
 				summary.Total-summary.Completed)
-			if summary.Name == "Sink" && summary.Total >= 1 {
-				completed = true
-			}
-		}
-		if completed {
-			break
 		}
 		<-time.NewTimer(time.Second).C
 	}
-	count, _ := c.Count("Sink")
-	fmt.Println("Count: ", count)
 }
